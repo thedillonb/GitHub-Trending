@@ -84,7 +84,10 @@ exports.getTrending = function(callback) {
 		});
 
 		// Write all the languages to the output directory
-		fs.writeFileSync(path.join(outDir, 'languages.json'), JSON.stringify(languages));
+		mkdirp(outdir, function(err) {
+			if (err) console.error(err);
+			fs.writeFileSync(path.join(outDir, 'languages.json'), JSON.stringify(languages));
+		});
 
 		var jobs = [];
 		_.each(times, function(time) {

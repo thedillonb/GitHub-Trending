@@ -84,7 +84,7 @@ exports.getTrending = function(callback) {
 		});
 
 		// Write all the languages to the output directory
-		mkdirp(outdir, function(err) {
+		mkdirp(outDir, function(err) {
 			if (err) console.error(err);
 			fs.writeFileSync(path.join(outDir, 'languages.json'), JSON.stringify(languages));
 		});

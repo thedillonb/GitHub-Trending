@@ -29,8 +29,8 @@ function getTrendingRepositories(time, language, callback) {
 		$ = cheerio.load(body);
 		var data = [];
 		$('.container.explore-page .explore-content > ol > li').each(function() {
-			var stars = $('.repo-leaderboard-meta-item .octicon-star-add', this).parent().text();
-			var forks = $('.repo-leaderboard-meta-item .octicon-git-branch-create', this).parent().text();
+			var stars = $('.repo-leaderboard-meta-item .octicon-star', this).parent().text();
+			var forks = $('.repo-leaderboard-meta-item .octicon-git-branch', this).parent().text();
 			stars = stars.length > 0 ? parseInt(stars) : 0;
 			forks = forks.length > 0 ? parseInt(forks) : 0;
 

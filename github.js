@@ -1,16 +1,9 @@
 var cheerio = require('cheerio'),
     request = require('request'),
     async 	= require('async'),
-    _ 		= require('underscore'),
-    path    = require('path'),
-    fs  	= require('fs'),
-    mkdirp  = require('mkdirp'),
-    appDir  = path.dirname(require.main.filename),
-    outDir = path.join(appDir, 'data');
+    _ 		= require('underscore');
 
-var times = ['daily', 'weekly', 'monthly'];
-
-function getTrendingRepositories(time, language, callback) {
+exports.getTrending = function(time, language, callback) {
 	var queryString = { 'since': time };
 	if (language != null) {
 		queryString.l = language;
@@ -47,7 +40,7 @@ function getTrendingRepositories(time, language, callback) {
 	});
 };
 
-function getLanguages(callback) {
+exports.getLanguages = function(callback) {
 	request({
 		method: 'GET',
 		url: 'https://github.com/trending',
@@ -72,73 +65,73 @@ function getLanguages(callback) {
 	});
 };
 
-
-exports.getTrending = function(callback) {
-	getLanguages(function(err, languages) {
-		var master = [];
-
-		// Add the unknown language
-		languages.push({
-			name: 'Unknown',
-			slug: 'unknown'
-		});
-
-		// Write all the languages to the output directory
-		mkdirp(outDir, function(err) {
-			if (err) console.error(err);
-			fs.writeFileSync(path.join(outDir, 'languages.json'), JSON.stringify(languages));
-		});
-
-		var jobs = [];
-		_.each(times, function(time) {
-			jobs.push(function(callback) {
-				getTrendingRepositories(time, null, function(err, results) {
-					var p = path.join(outDir, 'all', time);
-					mkdirp(p, function(err) {
-						if (err) return callback(err);
-						fs.writeFile(path.join(p, 'data.json'), JSON.stringify(results), function(err) {
-							callback(err);
-						});
+exports.getShowcases = function(callback) {
+	var getShowcasePage = function(page, callback) {
+		request({
+			method: 'GET',
+			url: 'https://github.com/showcases',
+			qs: { 'page': page },
+			headers: { 'X-PJAX': 'true' }
+		},
+		function(err, response, body) {
+			if (err) return callback(err);
+			$ = cheerio.load(body);
+			var showcases = [];
+			$('li.collection-card').each(function() {
+				var href = $('a.collection-card-image', this).attr('href');
+				if (href.lastIndexOf('/') > 0) {
+					showcases.push({
+						name: $('h3', this).text(),
+						slug: href.substring(href.lastIndexOf('/') + 1),
+						description: $('p.collection-card-body', this).text()
 					});
-				});
+				}
+			});
+
+			callback(err, {
+				showcases: showcases,
+				more: $('div.pagination a:contains("Next")').length > 0
 			});
 		});
+	};
 
-		master.push(function(callback) {
-			async.parallel(jobs, function(err, results) {
-				callback(err);
-			});
-		});
+	var more = false;
+	var page = 1;
+	var showcases = [];
 
-		_.each(languages, function(language) {
-			var jobs = {};
-
-			_.each(times, function(time) {
-				jobs[time] = function(callback) {
-					getTrendingRepositories(time, language.slug, function(err, results) {
-						if (err) return callback(err);
-
-						var p = path.join(outDir, language.slug, time);
-						mkdirp(p, function(err) {
-							if (err) return callback(err);
-							fs.writeFile(path.join(p, 'data.json'), JSON.stringify(results), function(err) {
-								callback(err);
-							});
-						});
-					});
-				};
-			});
-
-			master.push(function(callback) {
-				async.parallel(jobs, function(err, results) {
-					callback(err);
-				});
-			});
-		});
-
-		async.series(master, function(err) {
+	async.doWhilst(function(callback) {
+		getShowcasePage(page, function(err, results) {
+			if (err) return callback(err);
+			_.each(results.showcases, function(s) { showcases.push(s) });
+			more = results.more;
+			page++;
 			callback(err);
-		});
-	});
+		}); 
+	}, 
+	function() { return more }, 
+	function(err) { callback(err, showcases) });
 };
 
+exports.getShowcase = function(slug, callback) {
+	request({
+		method: 'GET',
+		url: 'https://github.com/showcases/' + slug,
+		headers: { 'X-PJAX': 'true' }
+	},
+	function(err, response, body) {
+		if (err) return callback(err);
+		$ = cheerio.load(body);
+		var data = [];
+		$('.collection-repos > li').each(function() {
+			data.push({
+				url: $('h3.collection-repo-title > a', this).attr('href'),
+				owner: $('h3.collection-repo-title .repo-author', this).text(),
+				name: $('h3.collection-repo-title .repo-name', this).text(),
+				description: ($('.collection-repo-description', this).text() || "").trim(),
+				stars: 0,
+				forks: 0,
+			})
+		});
+		callback(err, data);
+	});
+};

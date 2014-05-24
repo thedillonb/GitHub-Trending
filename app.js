@@ -22,7 +22,8 @@ app.get('/languages', function(req, res) {
 	db.Trending.find({}, 'language', function(err, data) {
 		if (err || !data) return res.send(500);
 		var languages = _.map(data, function(d) { return d.language });
-		languages = _.reject(languages, function(l) { return l.slug === 'all' } );
+		languages = _.reject(languages, function(l) { return l.slug === 'all' });
+		languages = _.sortBy(languages, function(l) { return l.name });
 		res.json(languages);
 	});
 });

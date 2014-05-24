@@ -69,4 +69,3 @@ var work = function() {
 }
 
 new CronJob('0 */12 * * *', work, null, true);
-work();

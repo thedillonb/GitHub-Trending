@@ -13,6 +13,7 @@ app.use(express.logger('dev'));
 app.use(express.bodyParser());
 app.use(express.methodOverride());
 app.use(app.router);
+app.use(express.static(process.cwd() + '/public'));
 
 if ('development' == app.get('env')) {
   app.use(express.errorHandler());
@@ -39,15 +40,14 @@ app.get('/trending', function(req, res) {
 });
 
 app.get('/showcases', function(req, res) {
-	db.Explore.find({}, 'slug name description', function(err, data) {
+	db.Explore.find({}, 'slug name description image', function(err, data) {
 		if (err || !data) return res.send(500);
 		res.json(data);
 	});
 });
 
-app.get('/showcase', function(req, res) {
-	var name = req.query.name;
-	db.Explore.findOne({ slug: name }, function(err, data) {
+app.get('/showcases/:id', function(req, res) {
+	db.Explore.findOne({ slug: req.params.id }, function(err, data) {
 		if (err) return res.send(500);
 		if (!data) return res.send(404);
 		res.json(data);
@@ -61,7 +61,7 @@ http.createServer(app).listen(app.get('port'), function(){
 var work = function() {
 	console.log('Beginning update job!')
 	async.series([
-		function(callback) { load.loadLanguages(callback); },
+		//function(callback) { load.loadLanguages(callback); },
 		function(callback) { load.loadShowcases(callback); }
 	], function(err) {
 		if (err) return console.error('Error during update job: %s', err);

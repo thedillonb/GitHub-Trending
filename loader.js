@@ -58,6 +58,7 @@ exports.loadShowcases = function(callback) {
 						name: showcase.name,
 						slug: showcase.slug,
 						description: showcase.description,
+						image: showcase.image,
 						repositories: repos
 					}, { 
 						upsert: true 

@@ -12,6 +12,7 @@
     "cheerio": "*",
     "async": "*",
     "request": "*",
-    "underscore": "*"
+    "underscore": "*",
+    "gm": "*"
   }
 }

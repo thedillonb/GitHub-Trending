@@ -29,6 +29,7 @@ var repositorySchema = new Schema({
 	name: String,
 	stars: Number,
 	forks: Number,
+    avatarUrl: String,
 	description: String,
     url: String
 }, { 
@@ -68,6 +69,7 @@ trendingSchema.index({ 'language.slug': 1 });
 var exploreSchema = new Schema({
 	name: String,
 	slug: String,
+    image: String,
     description: String,
 	repositories: [repositorySchema]
 }, { versionKey: false });

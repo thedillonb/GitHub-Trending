@@ -74,20 +74,13 @@ exports.getTrending = function(time, language, callback) {
 				owner: $('.repository-name .owner-name', this).text(),
 				name: $('.repository-name strong', this).text(),
 				description: $('p.repo-leaderboard-description', this).text(),
+				avatarUrl: $('.repo-leaderboard-contributors img.avatar', this).first().attr('src'),
 				stars: stars,
 				forks: forks,
 			})
 		});
 
-		async.parallel(_.map(data, function(x) {
-			return function(callback) {
-				getUser(x.owner, function(err, data) {
-					if (err) return callback(err);
-					x.avatarUrl = data.avatar_url;
-					callback(err);
-				});
-			};
-		}), function(err) { callback(null, data); });
+		callback(err, data);
 	});
 };
 

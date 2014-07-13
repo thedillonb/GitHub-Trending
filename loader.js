@@ -10,13 +10,14 @@ exports.loadLanguages = function(callback) {
 			async.waterfall([
 				function(callback) {
 					var langSlug = language.slug === 'all' ? null : language.slug;
-					async.series({
+					async.parallel({
 						daily: function(callback) { gh.getTrending('daily', langSlug, callback) },
 						weekly: function(callback) { gh.getTrending('weekly', langSlug, callback) },
 						monthly: function(callback) { gh.getTrending('monthly', langSlug, callback) }
 					}, callback);
 				},
 				function(repos, callback) {
+					console.log('Updating language: %s', language.slug);
 					db.Trending.update({ 'language.slug': language.slug }, {
 						language: language,
 						repositories: repos
@@ -24,10 +25,7 @@ exports.loadLanguages = function(callback) {
 						upsert: true 
 					}, callback);
 				}
-			], function(err) {
-				if (err) return console.error(err);
-				callback(err);
-			});
+			], callback);
 		};
 	};
 

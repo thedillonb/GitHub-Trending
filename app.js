@@ -61,7 +61,7 @@ http.createServer(app).listen(app.get('port'), function(){
 var work = function() {
 	console.log('Beginning update job!')
 	async.series([
-		//function(callback) { load.loadLanguages(callback); },
+		function(callback) { load.loadLanguages(callback); },
 		function(callback) { load.loadShowcases(callback); }
 	], function(err) {
 		if (err) return console.error('Error during update job: %s', err);

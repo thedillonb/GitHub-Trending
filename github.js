@@ -7,25 +7,6 @@ var cheerio = require('cheerio'),
 
 var oauth = process.env['GITHUB_TOKEN'];
 
-function getUser(username, callback) {
-	request({
-		method: 'GET',
-		url: 'https://api.github.com/users/' + username,
-		headers: {
-			'User-Agent': 'CodeHub-Trending'
-		},
-		auth: {
-			user: 'token',
-			pass: oauth,
-			sendImmediately: true
-		}
-	},
-	function(err, response, body) {
-		if (err) return callback(err);
-		callback(err, JSON.parse(body));
-	});
-}
-
 function getRepository(user, name, callback) {
 	request({
 		method: 'GET',
@@ -41,9 +22,24 @@ function getRepository(user, name, callback) {
 	},
 	function(err, response, body) {
 		if (err) return callback(err);
-		callback(err, JSON.parse(body));
+
+		var jsonBody = JSON.parse(body);
+		var rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining']);
+		var resetSeconds = parseInt(response.headers['x-ratelimit-reset']);
+		var nowSeconds = Math.round(new Date().getTime() / 1000);
+		var duration = resetSeconds - nowSeconds + 60;
+
+		// Make sure we don't drain the rate limit
+		if (rateLimitRemaining < 400) {
+			console.warn('Pausing for %s to allow rateLimit to reset', duration);
+			setTimeout(function() {
+				callback(null, jsonBody);
+			}, duration * 1000);
+		} else {
+			callback(null, jsonBody);
+		}
 	});
-}
+};
 
 exports.getTrending = function(time, language, callback) {
 	var queryString = { 'since': time };
@@ -70,17 +66,24 @@ exports.getTrending = function(time, language, callback) {
 			forks = forks.length > 0 ? parseInt(forks) : 0;
 
 			data.push({
-				url: $('.repository-name', this).attr('href'),
 				owner: $('.repository-name .owner-name', this).text(),
 				name: $('.repository-name strong', this).text(),
-				description: $('p.repo-leaderboard-description', this).text(),
-				avatarUrl: $('.repo-leaderboard-contributors img.avatar', this).first().attr('src'),
 				stars: stars,
 				forks: forks,
 			})
 		});
 
-		callback(err, data);
+		async.series(_.map(data, function(x) {
+			return function(callback) {
+				getRepository(x.owner, x.name, function(err, data) {
+					if (err) return callback(err);
+					x.url = data.html_url;
+					x.avatarUrl = data.owner.avatar_url;
+					x.description = data.description;
+					callback(err);
+				});
+			};
+		}), function(err) { callback(err, data); });
 	});
 };
 
@@ -162,7 +165,7 @@ exports.getShowcases = function(callback) {
 					var pngImage = 'public/' + x.slug + '.png';
 					fs.writeFile(svgImage, x.image, function(err) {
 						if (err) return callback(err);
-						gm(svgImage).write(pngImage, function(err) {
+						gm(svgImage).resize(96).write(pngImage, function(err) {
 							fs.unlink(svgImage);
 							if (err) return callback(err);
 							x.image = x.slug + '.png';
@@ -189,16 +192,12 @@ exports.getShowcase = function(slug, callback) {
 		var data = [];
 		$('.collection-repos > li').each(function() {
 			data.push({
-				url: $('h3.collection-repo-title > a', this).attr('href'),
 				owner: $('h3.collection-repo-title .repo-author', this).text(),
-				name: $('h3.collection-repo-title .repo-name', this).text(),
-				description: ($('.collection-repo-description', this).text() || "").trim(),
-				stars: 0,
-				forks: 0,
-			})
+				name: $('h3.collection-repo-title .repo-name', this).text()
+			});
 		});
 
-		async.parallel(_.map(data, function(x) {
+		async.series(_.map(data, function(x) {
 			return function(callback) {
 				getRepository(x.owner, x.name, function(err, data) {
 					if (err) return callback(err);
@@ -210,6 +209,6 @@ exports.getShowcase = function(slug, callback) {
 					callback(err);
 				});
 			};
-		}), function(err) { callback(null, data); });
+		}), function(err) { callback(err, data); });
 	});
 };

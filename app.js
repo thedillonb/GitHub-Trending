@@ -58,15 +58,18 @@ http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
 
-var work = function() {
-	console.log('Beginning update job!')
-	async.series([
-		function(callback) { load.loadLanguages(callback); },
-		function(callback) { load.loadShowcases(callback); }
-	], function(err) {
-		if (err) return console.error('Error during update job: %s', err);
-		console.log('Update job complete.')
+new CronJob('0 4 * * *', function() {
+	console.log('Begining Trending update...');
+	load.loadLanguages(function(err) {
+		if (err) return console.error('Error during Trending update: %s', err);
+		console.log('Trending update complete!')
 	});
-}
+}, null, true);
 
-new CronJob('0 */12 * * *', work, null, true);
+new CronJob('0 0 * * *', function() {
+	console.log('Begining Showcase update...');
+	load.loadShowcases(function(err) {
+		if (err) return console.error('Error during Showcase update: %s', err);
+		console.log('Showcase update complete!')
+	});
+}, null, true);

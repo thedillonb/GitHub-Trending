@@ -73,7 +73,7 @@ exports.getTrending = function(time, language, callback) {
 			})
 		});
 
-		async.series(_.map(data, function(x) {
+		async.parallelLimit(_.map(data, function(x) {
 			return function(callback) {
 				getRepository(x.owner, x.name, function(err, data) {
 					if (err) return callback(err);
@@ -83,7 +83,7 @@ exports.getTrending = function(time, language, callback) {
 					callback(err);
 				});
 			};
-		}), function(err) { callback(err, data); });
+		}), 4, function(err) { callback(err, data); });
 	});
 };
 
@@ -104,7 +104,7 @@ exports.getLanguages = function(callback) {
 			if (href.indexOf('=') > 0) {
 				languages.push({
 					name: $(this).text(),
-					slug: href.substring(href.indexOf('=') + 1)
+					slug: decodeURIComponent(href.substring(href.indexOf('=') + 1))
 				});
 			}
 		});

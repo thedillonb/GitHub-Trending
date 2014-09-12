@@ -60,16 +60,11 @@ exports.getTrending = function(time, language, callback) {
 		$ = cheerio.load(body);
 		var data = [];
 		$('.container.explore-page .explore-content > ol > li').each(function() {
-			var stars = $('.repo-leaderboard-meta-item .octicon-star', this).parent().text();
-			var forks = $('.repo-leaderboard-meta-item .octicon-git-branch', this).parent().text();
-			stars = stars.length > 0 ? parseInt(stars) : 0;
-			forks = forks.length > 0 ? parseInt(forks) : 0;
+            var owner = $('h3.repo-list-name > a', this).attr('href').split('/');
 
 			data.push({
-				owner: $('.repository-name .owner-name', this).text(),
-				name: $('.repository-name strong', this).text(),
-				stars: stars,
-				forks: forks,
+				owner: owner[1],
+				name: owner[2],
 			})
 		});
 
@@ -80,6 +75,8 @@ exports.getTrending = function(time, language, callback) {
 					x.url = data.html_url;
 					x.avatarUrl = data.owner.avatar_url;
 					x.description = data.description;
+                    x.stars = data.stargazers_count;
+                    x.forks = data.forks_count;
 					callback(err);
 				});
 			};

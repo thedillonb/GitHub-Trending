@@ -187,10 +187,11 @@ exports.getShowcase = function(slug, callback) {
 		if (err) return callback(err);
 		$ = cheerio.load(body);
 		var data = [];
-		$('.collection-repos > li').each(function() {
+		$('.repo-list > li').each(function() {
+            var href = $('h3.repo-list-name > a', this).attr('href').split('/');
 			data.push({
-				owner: $('h3.collection-repo-title .repo-author', this).text(),
-				name: $('h3.collection-repo-title .repo-name', this).text()
+				owner: href[1],
+				name: href[2]
 			});
 		});
 

@@ -19,6 +19,7 @@ You will need two prerequisites before you are able to sucessfully execute this 
 1. You will need a MongoDB instance. Try [MongoLab](http://www.mongolab.com) for a free instance
 2. You will need to generate a GitHub token if you want to scrape the pages
 
+To run either of the applications you will need to either set the ```DB_URL``` environmental variable or insert it on the end of each command (like below). You may also set the ```GITHUB_TOKEN``` environmental variable if you don't want to pass that on the command line too. It's up to you.
 
 ```
 git clone git@github.com:thedillonb/GitHub-Trending.git
@@ -26,12 +27,11 @@ git clone git@github.com:thedillonb/GitHub-Trending.git
 cd GitHub-Trending
 
 npm install
-
 ```
 
-*Run the web app:* ```npm start```
+*Run the web app:* ```npm start DB_URL=<MONGO_URI>```
 
-*Run the updater:* ```./bin/update --trending --showcase --key <GITHUB KEY>```
+*Run the updater:* ```./bin/update --trending --showcase --key <GITHUB_TOKEN> DB_URL=<MONGO_URI>```
 
 
 ## License 

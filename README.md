@@ -29,9 +29,9 @@ cd GitHub-Trending
 npm install
 ```
 
-*Run the web app:* ```npm start DB_URL=<MONGO_URI>```
+*Run the web app:* ```DB_URL=<MONGO_URI> npm start```
 
-*Run the updater:* ```./bin/update --trending --showcase --key <GITHUB_TOKEN> DB_URL=<MONGO_URI>```
+*Run the updater:* ```DB_URL=<MONGO_URI> ./bin/update --trending --showcase --key <GITHUB_TOKEN>```
 
 
 ## License 

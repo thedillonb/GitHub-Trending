@@ -10,6 +10,13 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Insert the domain into the request so we can build links
+app.use(function(req, res, next) {
+    req.domain = req.protocol + '://' + req.get('host');
+    next();
+});
+
 app.use('/', routes);
 
 // catch 404 and forward to error handler

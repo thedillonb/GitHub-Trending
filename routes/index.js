@@ -4,11 +4,11 @@ var _ = require('underscore');
 var router = module.exports = express.Router();
 
 router.get('/', function(req, res) {
-  res.json({
-    'languages': '/languages',
-    'trending': '/trending',
-    'showcases': '/showcases'
-  });
+    res.json({
+        'languages_url': req.domain + '/languages',
+        'trending_url': req.domain + '/trending',
+        'showcases_url': req.domain + '/showcases'
+    });
 });
 
 router.get('/languages', function(req, res, next) {
@@ -27,7 +27,7 @@ router.get('/trending', function(req, res, next) {
     var since = req.query.since || 'daily';
     db.Trending.findOne({ 'language.slug': language }, 'repositories.' + since, function(err, data) {
         if (err) return next(err);
-        if (!data) return res.send(404);
+        if (!data) return res.status(404).end();
         res.json(data.repositories[since]);
     });
 });
@@ -36,14 +36,27 @@ router.get('/showcases', function(req, res, next) {
     db.Explore.find({}, 'slug name description image', function(err, data) {
         if (err) return next(err);
         if (!data) return next(new Error('Unable to retrieve data from database!'));
-        res.json(data);
+        res.json(_.map(data, function(x) {
+            return {
+                name: x.name,
+                slug: x.slug,
+                description: x.description,
+                image_url: req.domain + '/' + x.image
+            };
+        }));
     });
 });
 
 router.get('/showcases/:id', function(req, res, next) {
     db.Explore.findOne({ slug: req.params.id }, function(err, data) {
         if (err) return next(err);
-        if (!data) return res.send(404);
-        res.json(data);
+        if (!data) return res.status(404).end();
+        res.json({
+            name: data.name,
+            slug: data.slug,
+            description: data.description,
+            image_url: req.domain + '/' + data.image,
+            repositories: data.repositories
+        });
     });
 });

@@ -1,75 +1,24 @@
-var express = require('express')
-  , http = require('http')
-  , gh = require('./github')
-  , async = require('async')
-  , db = require('./db')
-  , _  = require('underscore')
-  , load = require('./loader')
-  , CronJob = require('cron').CronJob;
+var express = require('express');
+var path = require('path');
+var logger = require('morgan');
+var bodyParser = require('body-parser');
+var routes = require('./routes/index');
+var db = require('./libs/db');
+var app = module.exports = express();
 
-var app = express();
-app.set('port', process.env.PORT || 3000);
-app.use(express.logger('dev'));
-app.use(express.bodyParser());
-app.use(express.methodOverride());
-app.use(app.router);
-app.use(express.static(process.cwd() + '/public'));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/', routes);
 
-if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
-}
-
-app.get('/languages', function(req, res) {
-	db.Trending.find({}, 'language', function(err, data) {
-		if (err || !data) return res.send(500);
-		var languages = _.map(data, function(d) { return d.language });
-		languages = _.reject(languages, function(l) { return l.slug === 'all' });
-		languages = _.sortBy(languages, function(l) { return l.name });
-		res.json(languages);
-	});
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
 });
 
-app.get('/trending', function(req, res) {
-	var language = req.query.language || 'all';
-	var since = req.query.since || 'daily';
-	db.Trending.findOne({ 'language.slug': language }, 'repositories.' + since, function(err, data) {
-		if (err) return res.send(500);
-		if (!data) return res.send(404);
-		res.json(data.repositories[since]);
-	});
+app.use(function(err, req, res, next) {
+    res.status(err.status || 500).end();
 });
-
-app.get('/showcases', function(req, res) {
-	db.Explore.find({}, 'slug name description image', function(err, data) {
-		if (err || !data) return res.send(500);
-		res.json(data);
-	});
-});
-
-app.get('/showcases/:id', function(req, res) {
-	db.Explore.findOne({ slug: req.params.id }, function(err, data) {
-		if (err) return res.send(500);
-		if (!data) return res.send(404);
-		res.json(data);
-	});
-});
-
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
-});
-
-new CronJob('0 4 * * *', function() {
-	console.log('Begining Trending update...');
-	load.loadLanguages(function(err) {
-		if (err) return console.error('Error during Trending update: %s', err);
-		console.log('Trending update complete!')
-	});
-}, null, true);
-
-new CronJob('0 0 * * *', function() {
-	console.log('Begining Showcase update...');
-	load.loadShowcases(function(err) {
-		if (err) return console.error('Error during Showcase update: %s', err);
-		console.log('Showcase update complete!')
-	});
-}, null, true);

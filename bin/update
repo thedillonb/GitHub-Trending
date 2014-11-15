@@ -1,0 +1,143 @@
+#!/usr/bin/env node
+
+var program = require('commander');
+var db     = require('../libs/db');
+var path   = require('path');
+var async  = require('async');
+var _      = require('underscore');
+var fs     = require('fs');
+var gm     = require('gm').subClass({ imageMagick: true });
+
+program.version('1.0.0')
+    .option('-k, --key <key>', 'GitHub token')
+    .option('-t, --trending', 'Update Trending Repositories')
+    .option('-s, --showcase', 'Update Showcase Repositories')
+    .parse(process.argv);
+
+var gh = require('../libs/github')(program.key || process.env.PORT);
+var operations = []
+
+if (program.trending) {
+    var createLoadLanguageJob = function(language, callback) {
+        async.waterfall([
+            function(callback) {
+                var langSlug = language.slug === 'all' ? null : language.slug;
+                async.series({
+                    daily: function(callback) { 
+                        gh.getTrendingRepositories('daily', langSlug, callback);
+                    },
+                    weekly: function(callback) { 
+                        gh.getTrendingRepositories('weekly', langSlug, callback);
+                    },
+                    monthly: function(callback) { 
+                        gh.getTrendingRepositories('monthly', langSlug, callback);
+                    }
+                }, 
+                callback);
+            },
+            function(repos, callback) {
+                console.log('Updating language: %s', language.slug);
+                db.Trending.update({ 'language.slug': language.slug }, {
+                    language: language,
+                    repositories: repos
+                }, { 
+                    upsert: true 
+                }, callback);
+            }
+        ], callback);
+    };
+
+    operations.push(function(callback) {
+        async.waterfall([
+            function(callback) {
+                gh.getLanguages(function(err, languages) {
+                    if (err) return callback(err);
+                    languages.unshift({ name: 'All Languages', slug: 'all' });
+                    languages.push({ name: 'Unknown', slug: 'unknown' });
+                    callback(err, languages);
+                });
+            },
+            function(languages, callback) {
+                async.series(_.map(languages, function(language) {
+                    return function(callback) {
+                        createLoadLanguageJob(language, callback);
+                    }
+                }), callback);
+            }
+        ], callback);
+    });
+}
+
+if (program.showcase) {
+    var createLoadShowcaseJob = function(showcase, callback) {
+        async.waterfall([
+            function(callback) {
+                var svgImage = path.join(__dirname, '../public/' + showcase.slug + '.svg');
+                var pngImage = path.join(__dirname, '../public/' + showcase.slug + '.png');
+                fs.writeFile(svgImage, showcase.image, function(err) {
+                    if (err) return callback(err);
+                    gm(svgImage).resize(96).write(pngImage, function(err) {
+                        fs.unlink(svgImage);
+                        callback(err, {
+                            name: showcase.name,
+                            slug: showcase.slug,
+                            description: showcase.description,
+                            image: showcase.slug + '.png',
+                        });
+                    });
+                });
+            },
+            function(showcase, callback) {
+                gh.getShowcaseRepositories(showcase.slug, function(err, repos) {
+                    callback(err, showcase, repos);
+                });
+            },
+            function(showcase, repos, callback) {
+                console.log('Updating showcase: %s', showcase.slug);
+                db.Explore.update({ 'slug': showcase.slug }, {
+                    name: showcase.name,
+                    slug: showcase.slug,
+                    description: showcase.description,
+                    image: showcase.image,
+                    repositories: repos
+                }, { upsert: true }, callback);
+            }
+        ], callback);
+    };
+
+    operations.push(function(callback) {
+        async.waterfall([
+            function(callback) {
+                gh.getShowcases(callback);
+            },
+            function(showcases, callback) {
+                async.series(_.map(showcases, function(showcase) {
+                    return function(callback) {
+                        createLoadShowcaseJob(showcase, callback);
+                    };
+                }), callback);
+            }
+        ], callback);
+    });
+}
+
+if (operations.length === 0) {
+    throw new Error('You must specify one or more update operations');
+}
+
+async.series(operations, function(err) {
+    if (err) {
+        console.error(err);
+        return process.exit(-1);
+    }
+
+    console.log('Update complete');
+    return process.exit(0);
+});
+
+
+
+
+
+
+

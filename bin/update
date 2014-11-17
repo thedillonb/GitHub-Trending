@@ -14,7 +14,7 @@ program.version('1.0.0')
     .option('-s, --showcase', 'Update Showcase Repositories')
     .parse(process.argv);
 
-var gh = require('../libs/github')(program.key || process.env.PORT);
+var gh = require('../libs/github')(program.key || process.env.GITHUB_TOKEN);
 var operations = []
 
 if (program.trending) {

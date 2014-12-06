@@ -6,11 +6,11 @@ but I welcome anyone else who wishes to expand upon this to do so.
 
 ## Demo
 
-[Showcases](http://trending.codehub-app.com/showcases)
+[Showcases](http://trending.codehub-app.com/v2/showcases)
 
-[Languages](http://trending.codehub-app.com/languages)
+[Languages](http://trending.codehub-app.com/v2/languages)
 
-[Trending](http://trending.codehub-app.com/trending)
+[Trending](http://trending.codehub-app.com/v2/trending)
 
 ## Installation
 

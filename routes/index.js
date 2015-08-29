@@ -5,10 +5,10 @@ var router = module.exports = express.Router();
 
 function transformRepositoryToV1(r) {
   return {
-    owner: r.owner.login,
+    owner: (r.owner || {}).login,
     name: r.name,
     url: r.url,
-    avatarUrl: r.owner.avatar_url,
+    avatarUrl: (r.owner || {}).avatar_url,
     description: r.description,
     stars: r.stargazers_count,
     forks: r.forks_count

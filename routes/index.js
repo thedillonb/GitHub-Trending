@@ -3,6 +3,18 @@ var db = require('../libs/db');
 var _ = require('underscore');
 var router = module.exports = express.Router();
 
+function transformRepositoryToV1(r) {
+  return {
+    owner: r.owner.login,
+    name: r.name,
+    url: r.url,
+    avatarUrl: r.owner.avatar_url,
+    description: r.description,
+    stars: r.stargazers_count,
+    forks: r.forks_count
+  };
+}
+
 router.get('/', function(req, res) {
     res.json({
         'languages_url': req.domain + '/languages',
@@ -22,7 +34,18 @@ router.get('/languages', function(req, res, next) {
     });
 });
 
+// Get rid of this soon...
 router.get('/trending', function(req, res, next) {
+    var language = req.query.language || 'all';
+    var since = req.query.since || 'daily';
+    db.Trending.findOne({ 'language.slug': language }, 'repositories.' + since, function(err, data) {
+        if (err) return next(err);
+        if (!data) return res.status(404).end();
+        res.json(_.map(data.repositories[since], transformRepositoryToV1));
+    });
+});
+
+router.get('/v2/trending', function(req, res, next) {
     var language = req.query.language || 'all';
     var since = req.query.since || 'daily';
     db.Trending.findOne({ 'language.slug': language }, 'repositories.' + since, function(err, data) {

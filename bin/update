@@ -17,22 +17,28 @@ program.version('1.0.0')
 var gh = require('../libs/github')(program.key || process.env.GITHUB_TOKEN);
 var operations = []
 
+function delayCallback(callback) {
+  return function(err, data) {
+    setTimeout(function() { callback(err, data); }, 2000);
+  }
+}
+
 if (program.trending) {
     var createLoadLanguageJob = function(language, callback) {
         async.waterfall([
             function(callback) {
                 var langSlug = language.slug === 'all' ? null : language.slug;
                 async.series({
-                    daily: function(callback) { 
-                        gh.getTrendingRepositories('daily', langSlug, callback);
+                    daily: function(callback) {
+                        gh.getTrendingRepositories('daily', langSlug, delayCallback(callback));
                     },
-                    weekly: function(callback) { 
-                        gh.getTrendingRepositories('weekly', langSlug, callback);
+                    weekly: function(callback) {
+                        gh.getTrendingRepositories('weekly', langSlug, delayCallback(callback));
                     },
-                    monthly: function(callback) { 
-                        gh.getTrendingRepositories('monthly', langSlug, callback);
+                    monthly: function(callback) {
+                        gh.getTrendingRepositories('monthly', langSlug, delayCallback(callback));
                     }
-                }, 
+                },
                 callback);
             },
             function(repos, callback) {
@@ -40,8 +46,8 @@ if (program.trending) {
                 db.Trending.update({ 'language.slug': language.slug }, {
                     language: language,
                     repositories: repos
-                }, { 
-                    upsert: true 
+                }, {
+                    upsert: true
                 }, callback);
             }
         ], callback);
@@ -134,10 +140,3 @@ async.series(operations, function(err) {
     console.log('Update complete');
     return process.exit(0);
 });
-
-
-
-
-
-
-

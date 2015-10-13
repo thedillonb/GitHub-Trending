@@ -18,6 +18,7 @@ app.use(function(req, res, next) {
 });
 
 app.use('/', routes);
+app.use('/v2', routes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

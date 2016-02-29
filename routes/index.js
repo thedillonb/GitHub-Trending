@@ -1,7 +1,13 @@
-var express = require('express');
-var db = require('../libs/db');
-var _ = require('underscore');
-var router = module.exports = express.Router();
+'use strict';
+const express = require('express');
+const co = require('co');
+const db = require('../libs/db');
+const _ = require('underscore');
+const router = express.Router();
+
+function wrap(fn) {
+  return (req, res, next) => co(fn(req, res, next)).catch(err => next(err));
+}
 
 function transformRepositoryToV1(r) {
   return {
@@ -16,70 +22,52 @@ function transformRepositoryToV1(r) {
 }
 
 router.get('/', function(req, res) {
-    res.json({
-        'languages_url': req.domain + '/languages',
-        'trending_url': req.domain + '/trending',
-        'showcases_url': req.domain + '/showcases'
-    });
+  res.json({
+    'languages_url': req.domain + '/languages',
+    'trending_url': req.domain + '/trending',
+    'showcases_url': req.domain + '/showcases'
+  });
 });
 
-router.get('/languages', function(req, res, next) {
-    db.Trending.find({}, 'language', function(err, data) {
-        if (err) return next(err);
-        if (!data) return next(new Error('Unable to retrieve data from database!'));
-        var languages = _.map(data, function(d) { return d.language });
-        languages = _.reject(languages, function(l) { return l.slug === 'all' });
-        languages = _.sortBy(languages, function(l) { return l.name });
-        res.json(languages);
-    });
-});
+router.get('/languages', wrap(function *(req, res) {
+  let languages = yield db.getLanguages();
+  languages = _.reject(languages, function(l) { return l.slug === 'all' });
+  languages = _.sortBy(languages, function(l) { return l.name });
+  res.json(languages);
+}));
 
 // Get rid of this soon...
-router.get('/trending', function(req, res, next) {
-    var language = req.query.language || 'all';
-    var since = req.query.since || 'daily';
-    db.Trending.findOne({ 'language.slug': language }, 'repositories.' + since, function(err, data) {
-        if (err) return next(err);
-        if (!data) return res.status(404).end();
-        res.json(_.map(data.repositories[since], transformRepositoryToV1));
-    });
-});
+router.get('/trending', wrap(function *(req, res) {
+  const language = req.query.language || 'all';
+  const since = req.query.since || 'daily';
+  const trending = yield db.getTrending(language, since);
+  if (!trending) return res.status(404).end();
+  res.json(trending.map(transformRepositoryToV1));
+}));
 
-router.get('/v2/trending', function(req, res, next) {
-    var language = req.query.language || 'all';
-    var since = req.query.since || 'daily';
-    db.Trending.findOne({ 'language.slug': language }, 'repositories.' + since, function(err, data) {
-        if (err) return next(err);
-        if (!data) return res.status(404).end();
-        res.json(data.repositories[since]);
-    });
-});
+router.get('/v2/trending', wrap(function *(req, res, next) {
+  const language = req.query.language || 'all';
+  const since = req.query.since || 'daily';
+  const trending = yield db.getTrending(language, since);
+  if (!trending) return res.status(404).end();
+  res.json(trending);
+}));
 
-router.get('/showcases', function(req, res, next) {
-    db.Explore.find({}, 'slug name description image', function(err, data) {
-        if (err) return next(err);
-        if (!data) return next(new Error('Unable to retrieve data from database!'));
-        res.json(_.map(data, function(x) {
-            return {
-                name: x.name,
-                slug: x.slug,
-                description: x.description,
-                image_url: req.domain + '/' + x.image
-            };
-        }));
-    });
-});
+router.get('/showcases', wrap(function *(req, res, next) {
+  res.json((yield db.getShowcases()).map(x => {
+    return {
+      name: x.name,
+      slug: x.slug,
+      description: x.description,
+      image_url: req.domain + '/' + x.image
+    };
+  }));
+}));
 
-router.get('/showcases/:id', function(req, res, next) {
-    db.Explore.findOne({ slug: req.params.id }, function(err, data) {
-        if (err) return next(err);
-        if (!data) return res.status(404).end();
-        res.json({
-            name: data.name,
-            slug: data.slug,
-            description: data.description,
-            image_url: req.domain + '/' + data.image,
-            repositories: data.repositories
-        });
-    });
-});
+router.get('/showcases/:id', wrap(function*(req, res, next) {
+  const showcase = yield db.getShowcase(req.params.id);
+  if (!showcase) return res.status(404).end();
+  res.json(showcase);
+}));
+
+module.exports = router;

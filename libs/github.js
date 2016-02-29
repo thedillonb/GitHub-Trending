@@ -1,191 +1,156 @@
-var cheerio = require('cheerio'),
-    request = require('request'),
-    async   = require('async'),
-    _       = require('underscore');
+'use strict';
+const co      = require('co');
+const cheerio = require('cheerio');
+const request = require('request');
+const _       = require('underscore');
 
 function GitHubClient(token) {
     if (!token) throw new Error('You must provide a GitHub token!');
     this.token = token;
 };
 
+function makeRequest(req) {
+  return new Promise((res, rej) => {
+    console.log('%s %s - %j', req.method, req.url, req.qs || {});
+    request(req, (err, response, body) => {
+      if (err) return rej(err);
+      return res({ response: response, body: body });
+    });
+  });
+};
+
 GitHubClient.prototype.getRepository = function(user, name, callback) {
-    var req = {
+    return makeRequest({
         method: 'GET',
         url: 'https://api.github.com/repos/' + user + '/' + name,
-        headers: {
-            'User-Agent': 'CodeHub-Trending'
-        },
+        headers: { 'User-Agent': 'CodeHub-Trending' },
         auth: {
             user: 'token',
             pass: this.token,
             sendImmediately: true
         }
-    };
+    }).then(x => {
+      const response = x.response;
+      const rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining']);
+      const resetSeconds = parseInt(response.headers['x-ratelimit-reset']);
+      const nowSeconds = Math.round(new Date().getTime() / 1000);
+      const duration = resetSeconds - nowSeconds + 60;
 
-    console.log('%s %s', req.method, req.url);
-    request(req, function(err, response, body) {
-        if (err) return callback(err);
+      // We need to drop the permission object from every repository
+      // because that state belongs to the user that is authenticated
+      // at the curren time; which is misrepresentitive of the client
+      // attempting to query this information.
+      const repoBody = _.omit(JSON.parse(x.body), 'permissions');
 
-        var repoBody = JSON.parse(body);
-        var rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining']);
-        var resetSeconds = parseInt(response.headers['x-ratelimit-reset']);
-        var nowSeconds = Math.round(new Date().getTime() / 1000);
-        var duration = resetSeconds - nowSeconds + 60;
+      // Make sure we don't drain the rate limit
+      if (rateLimitRemaining < 400) {
+          console.warn('Pausing for %s to allow rateLimit to reset', duration);
+          return new Promise((res) => setTimeout(res, duration * 1000)).then(_ => repoBody);
+      }
 
-        // We need to drop the permission object from every repository
-        // because that state belongs to the user that is authenticated
-        // at the curren time; which is misrepresentitive of the client
-        // attempting to query this information.
-        repoBody = _.omit(repoBody, 'permissions');
-
-        // Make sure we don't drain the rate limit
-        if (rateLimitRemaining < 400) {
-            console.warn('Pausing for %s to allow rateLimit to reset', duration);
-            setTimeout(function() {
-                callback(null, repoBody);
-            }, duration * 1000);
-        } else {
-            callback(null, repoBody);
-        }
+      return repoBody;
     });
 };
 
-GitHubClient.prototype.getTrendingRepositories = function(time, language, callback) {
-    var self = this;
-    var queryString = { 'since': time };
+GitHubClient.prototype.getTrendingRepositories = co.wrap(function*(time, language) {
+    const queryString = { 'since': time };
     if (language) queryString.l = language;
 
-    var req = {
+    const res = yield makeRequest({
         method: 'GET',
         url: 'https://github.com/trending',
         qs: queryString,
-        headers: {
-            'X-PJAX': 'true'
-        }
-    };
-
-    console.log('%s %s - %j', req.method, req.url, req.qs);
-    request(req, function(err, response, body) {
-        if (err) return callback(err);
-        $ = cheerio.load(body);
-        var data = [];
-        $('.container.explore-page .explore-content > ol > li').each(function() {
-            var owner = $('h3.repo-list-name > a', this).attr('href').split('/');
-            data.push({ owner: owner[1], name: owner[2] });
-        });
-
-        async.parallelLimit(_.map(data, function(x) {
-            return function(callback) {
-                self.getRepository(x.owner, x.name, callback);
-            };
-        }), 4, callback);
+        headers: { 'X-PJAX': 'true' }
     });
-};
 
-GitHubClient.prototype.getLanguages = function(callback) {
-    var req = {
+    const $ = cheerio.load(res.body);
+    const data = [];
+    $('.container.explore-page .explore-content > ol > li').each(function() {
+        var owner = $('h3.repo-list-name > a', this).attr('href').split('/');
+        data.push({ owner: owner[1], name: owner[2] });
+    });
+
+    const repos = [];
+    for (let i = 0; i < data.length; i++) {
+      repos.push(yield this.getRepository(x.owner, x.name));
+    }
+    return repos;
+});
+
+GitHubClient.prototype.getLanguages = function() {
+    return makeRequest({
         method: 'GET',
         url: 'https://github.com/trending',
-        headers: {
-            'X-PJAX': 'true'
-        }
-    };
-
-    console.log('%s %s', req.method, req.url);
-    request(req, function(err, response, body) {
-        if (err) return callback(err);
-        $ = cheerio.load(body);
-        var languages = [];
-        $('.column.one-fourth .select-menu .select-menu-list .select-menu-item > a').each(function() {
-            var href = $(this).attr('href');
-            if (href.indexOf('=') > 0) {
-                languages.push({
-                    name: $(this).text(),
-                    slug: decodeURIComponent(href.substring(href.indexOf('=') + 1))
-                });
-            }
+        headers: { 'X-PJAX': 'true' }
+    }).then(x => {
+      const $ = cheerio.load(x.body);
+      const languages = [];
+      $('.column.one-fourth .select-menu .select-menu-list a.select-menu-item').each(function() {
+        const href = $(this).attr('href');
+        languages.push({
+            name: $(this).text().trim(),
+            slug: decodeURIComponent(href.substring(href.lastIndexOf('/') + 1))
         });
-        callback(null, languages);
+      });
+      return languages;
     });
 };
 
-GitHubClient.prototype.getShowcases = function(callback) {
-    var getShowcasePage = function(page, callback) {
-        var req = {
-            method: 'GET',
-            url: 'https://github.com/showcases',
-            qs: { 'page': page },
-            headers: { 'X-PJAX': 'true' }
-        };
+GitHubClient.prototype.getShowcases = co.wrap(function*() {
+    const showcases = [];
 
-        console.log('%s %s - %j', req.method, req.url, req.qs);
-        request(req, function(err, response, body) {
-            if (err) return callback(err);
-            $ = cheerio.load(body);
-            var showcases = [];
-            $('li.collection-card').each(function() {
-                var href = $('a.collection-card-image', this).attr('href');
-                if (href.lastIndexOf('/') > 0) {
-                    var showcase = {
-                        name: $('h3', this).text(),
-                        slug: href.substring(href.lastIndexOf('/') + 1),
-                        description: $('p.collection-card-body', this).text()
-                    };
+    for (let page = 1; page < 1000; page++) {
+      const res = yield makeRequest({
+          method: 'GET',
+          url: 'https://github.com/showcases',
+          qs: { 'page': page },
+          headers: { 'X-PJAX': 'true' }
+      });
 
-                    var imageExtract = /url\(data:image\/svg\+xml;base64,(.+)\)/g;
-                    var arr = imageExtract.exec($('.collection-card-image', this).attr('style'));
-                    showcase.image = new Buffer(arr[1], 'base64').toString('ascii');
-                    showcases.push(showcase);
-                }
-            });
+      const $ = cheerio.load(res.body);
+      $('li.collection-card').each(function() {
+          const href = $('a.collection-card-image', this).attr('href');
+          if (href.lastIndexOf('/') > 0) {
+              const showcase = {
+                  name: $('h3', this).text(),
+                  slug: href.substring(href.lastIndexOf('/') + 1),
+                  description: $('p.collection-card-body', this).text()
+              };
 
-            callback(err, {
-                showcases: showcases,
-                more: $('div.pagination a:contains("Next")').length > 0
-            });
-        });
-    };
+              const imageExtract = /url\(data:image\/svg\+xml;base64,(.+)\)/g;
+              const arr = imageExtract.exec($('.collection-card-image', this).attr('style'));
+              showcase.image = new Buffer(arr[1], 'base64').toString('ascii');
+              showcases.push(showcase);
+          }
+      });
 
-    var more = false;
-    var page = 1;
-    var showcases = [];
+      const next = $('div.pagination a:contains("Next")');
+      if (next.length == 0) break;
+    }
 
-    async.doWhilst(function(callback) {
-        getShowcasePage(page, function(err, results) {
-            if (err) return callback(err);
-            _.each(results.showcases, function(s) { showcases.push(s) });
-            more = results.more;
-            page++;
-            callback();
-        }); 
-    }, 
-    function() { return more }, 
-    function(err) { callback(err, showcases) });
-};
+    return showcases;
+});
 
-GitHubClient.prototype.getShowcaseRepositories = function(slug, callback) {
-    var self = this;
-    request({
+GitHubClient.prototype.getShowcaseRepositories = co.wrap(function *(slug) {
+    const res = yield makeRequest({
         method: 'GET',
         url: 'https://github.com/showcases/' + slug,
         headers: { 'X-PJAX': 'true' }
-    },
-    function(err, response, body) {
-        if (err) return callback(err);
-        $ = cheerio.load(body);
-        var data = [];
-        $('.repo-list > li').each(function() {
-            var href = $('h3.repo-list-name > a', this).attr('href').split('/');
-            data.push({ owner: href[1], name: href[2] });
-        });
-
-        async.series(_.map(data, function(x) {
-            return function(callback) {
-                self.getRepository(x.owner, x.name, callback);
-            };
-        }), callback);
     });
-};
+
+    const $ = cheerio.load(res.body);
+    const data = [];
+    $('.repo-list > li').each(function() {
+        const href = $('h3.repo-list-name > a', this).attr('href').split('/');
+        data.push({ owner: href[1], name: href[2] });
+    });
+
+    const repos = [];
+    for (let i = 0; i < data.length; i++) {
+      repos.push(yield this.getRepository(data[i].owner, data[i].name));
+    }
+    return repos;
+});
 
 
 module.exports = function(token) {

@@ -1,69 +1,35 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
-var dbURI = process.env['DB_URL'];
+'use strict';
+const path = require('path');
+const dbPath = path.join(__dirname, '..', '.db');
+const fs = require('fs');
 
-if (!dbURI) throw new Error('DB_URL has not been set in the environmental variables!');
+function readFile(path) {
+  return new Promise((res, rej) => {
+    fs.readFile(path, (err, data) => err ? rej(err) : res(data));
+  });
+}
 
-var toJSONOptions = {
-    transform: function(doc, ret) {
-        delete ret._id;
-        return ret;
-    }
+function access(path, flags) {
+  return new Promise((res, rej) => {
+    fs.access(path, flags, (err) => err ? rej(err) : res());
+  });
+}
+
+module.exports.getLanguages = function() {
+  return readFile(path.join(dbPath, 'trending', 'languages.json')).then(JSON.parse);
 };
 
-var trendingSchema = new Schema({
-    language: {
-        name: String,
-        slug: String
-    },
-    repositories: {
-        daily: [Schema.Types.Mixed],
-        weekly: [Schema.Types.Mixed],
-        monthly: [Schema.Types.Mixed]
-    }
-}, { 
-    versionKey: false,
-    collection: 'trendings.v2'
-});
+module.exports.getTrending = function(language, since) {
+  const db = path.join(dbPath, 'trending', `${language}.${since}.json`);
+  return access(db, fs.F_OK | fs.R_OK).then(x => readFile(db).then(y => JSON.parse(y)), err => null);
+}
 
-trendingSchema.options.toJSON = toJSONOptions;
-trendingSchema.index({ 'language.slug': 1 });
+module.exports.getShowcases = function() {
+  const db = path.join(dbPath, 'showcase', 'showcases.json');
+  return readFile(db).then(JSON.parse);
+}
 
-var exploreSchema = new Schema({
-    name: String,
-    slug: String,
-    image: String,
-    description: String,
-    repositories: [Schema.Types.Mixed]
-}, { 
-    versionKey: false,
-    collection: 'explores.v2'
-});
-
-exploreSchema.options.toJSON = toJSONOptions;
-exploreSchema.index({ slug: 1 });
-
-mongoose.connection.on('error', function (err) {
-    console.error(err);
-});
-
-mongoose.connection.on('disconnected', function () {
-    console.log('Connection to MongoDB has been disconnected');
-});
-
-mongoose.connection.on('connected', function () {
-    console.log('Mongoose default connection open to ' + dbURI);
-});
-
-process.on('SIGINT', function() {
-    mongoose.connection.close(function () {
-        console.log('Mongoose disconnected on app termination');
-        process.exit(0);
-    });
-});
-
-mongoose.connect(dbURI, { server: { socketOptions: { keepAlive: 1 } } });
-
-exports.Trending = mongoose.model('Trending', trendingSchema);
-exports.Explore = mongoose.model('Explore', exploreSchema);
-
+module.exports.getShowcase = function(showcase) {
+  const db = path.join(dbPath, 'showcase', `${showcase}.json`);
+  return access(db, fs.F_OK | fs.R_OK).then(x => readFile(db).then(y => JSON.parse(y)), err => null);
+}

@@ -1,10 +1,10 @@
-var express = require('express');
-var path = require('path');
-var logger = require('morgan');
-var bodyParser = require('body-parser');
-var routes = require('./routes/index');
-var db = require('./libs/db');
-var app = module.exports = express();
+const express = require('express');
+const path = require('path');
+const logger = require('morgan');
+const bodyParser = require('body-parser');
+const routes = require('./routes/index');
+const db = require('./libs/db');
+const app = express();
 
 app.use(logger('dev'));
 app.use(bodyParser.json());
@@ -30,3 +30,5 @@ app.use(function(req, res, next) {
 app.use(function(err, req, res, next) {
     res.status(err.status || 500).end();
 });
+
+module.exports = app;

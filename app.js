@@ -28,7 +28,7 @@ app.use(function(req, res, next) {
 });
 
 app.use(function(err, req, res, next) {
-    res.status(err.status || 500).end();
+    res.status(err.status || 500).json({ message: err.message }).end();
 });
 
 module.exports = app;

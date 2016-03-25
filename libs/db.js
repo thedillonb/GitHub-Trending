@@ -26,7 +26,7 @@ module.exports.getTrending = function(language, since) {
 
 module.exports.getShowcases = function() {
   const db = path.join(dbPath, 'showcase', 'showcases.json');
-  return readFile(db).then(JSON.parse);
+  return readFile(db).then(JSON.parse, err => []);
 }
 
 module.exports.getShowcase = function(showcase) {

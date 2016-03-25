@@ -72,7 +72,9 @@ GitHubClient.prototype.getTrendingRepositories = co.wrap(function*(time, languag
 
     const repos = [];
     for (let i = 0; i < data.length; i++) {
-      repos.push(yield this.getRepository(x.owner, x.name));
+      const owner = data[i].owner;
+      const name = data[i].name;
+      repos.push(yield this.getRepository(owner, name));
     }
     return repos;
 });
@@ -103,22 +105,21 @@ GitHubClient.prototype.getShowcases = co.wrap(function*() {
       const res = yield makeRequest({
           method: 'GET',
           url: 'https://github.com/showcases',
-          qs: { 'page': page },
-          headers: { 'X-PJAX': 'true' }
+          qs: { 'page': page }
       });
 
       const $ = cheerio.load(res.body);
-      $('li.collection-card').each(function() {
-          const href = $('a.collection-card-image', this).attr('href');
+      $('.main-content a.exploregrid-item').each(function() {
+          const href = $(this).attr('href');
           if (href.lastIndexOf('/') > 0) {
               const showcase = {
-                  name: $('h3', this).text(),
+                  name: $('h3', this).text().trim(),
                   slug: href.substring(href.lastIndexOf('/') + 1),
-                  description: $('p.collection-card-body', this).text()
+                  description: $(this).clone().children().remove().end().text().trim()
               };
 
               const imageExtract = /url\(data:image\/svg\+xml;base64,(.+)\)/g;
-              const arr = imageExtract.exec($('.collection-card-image', this).attr('style'));
+              const arr = imageExtract.exec($('.exploregrid-item-header', this).attr('style'));
               showcase.image = new Buffer(arr[1], 'base64').toString('ascii');
               showcases.push(showcase);
           }
@@ -131,7 +132,7 @@ GitHubClient.prototype.getShowcases = co.wrap(function*() {
     return showcases;
 });
 
-GitHubClient.prototype.getShowcaseRepositories = co.wrap(function *(slug) {
+GitHubClient.prototype.getShowcaseData = co.wrap(function *(slug) {
     const res = yield makeRequest({
         method: 'GET',
         url: 'https://github.com/showcases/' + slug,
@@ -139,6 +140,8 @@ GitHubClient.prototype.getShowcaseRepositories = co.wrap(function *(slug) {
     });
 
     const $ = cheerio.load(res.body);
+    const title = $('.showcase-page-title').text().trim();
+    const description = $('.showcase-page-description').text().trim();
     const data = [];
     $('.repo-list > li').each(function() {
         const href = $('h3.repo-list-name > a', this).attr('href').split('/');
@@ -149,7 +152,11 @@ GitHubClient.prototype.getShowcaseRepositories = co.wrap(function *(slug) {
     for (let i = 0; i < data.length; i++) {
       repos.push(yield this.getRepository(data[i].owner, data[i].name));
     }
-    return repos;
+    return {
+      title: title,
+      description: description,
+      repos: repos
+    };
 });
 
 

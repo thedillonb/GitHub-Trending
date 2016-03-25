@@ -71,13 +71,13 @@ if (program.showcase) {
         });
       });
 
-      const repos = yield gh.getShowcaseRepositories(showcase.slug);
+      const data = yield gh.getShowcaseData(showcase.slug);
       yield atomic(path.join(showcasePath, `${showcase.slug}.json`), {
-          name: showcase.name,
+          name: data.name,
           slug: showcase.slug,
-          description: showcase.description,
+          description: data.description,
           image: showcase.slug + '.png',
-          repositories: repos
+          repositories: data.repos
       });
     }
 
@@ -104,6 +104,6 @@ co(function *() {
   console.log('Update complete');
   return process.exit(0);
 }, err => {
-  console.error(err);
+  console.error(err.stack);
   return process.exit(-1);
 });

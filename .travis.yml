@@ -2,6 +2,7 @@ sudo: required
 services:
 - docker
 script:
+- docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
 - docker build -t thedillonb/github-trending .
 - docker push thedillonb/github-trending
 env:

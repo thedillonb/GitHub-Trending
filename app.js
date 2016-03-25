@@ -4,9 +4,11 @@ const logger = require('morgan');
 const bodyParser = require('body-parser');
 const routes = require('./routes/index');
 const db = require('./libs/db');
+const cors = require('cors');
 const app = express();
 
 app.use(logger('dev'));
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));

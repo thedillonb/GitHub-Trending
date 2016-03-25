@@ -72,10 +72,11 @@ if (program.showcase) {
       });
 
       const data = yield gh.getShowcaseData(showcase.slug);
+      showcase.description = data.description;
       yield atomic(path.join(showcasePath, `${showcase.slug}.json`), {
-          name: data.name,
+          name: showcase.name,
           slug: showcase.slug,
-          description: data.description,
+          description: showcase.description,
           image: showcase.slug + '.png',
           repositories: data.repos
       });

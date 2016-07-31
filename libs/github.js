@@ -109,7 +109,7 @@ GitHubClient.prototype.getShowcases = co.wrap(function*() {
       });
 
       const $ = cheerio.load(res.body);
-      $('.main-content a.exploregrid-item').each(function() {
+      $('.exploregrid a.exploregrid-item').each(function() {
           const href = $(this).attr('href');
           if (href.lastIndexOf('/') > 0) {
               const showcase = {

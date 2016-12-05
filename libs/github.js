@@ -66,7 +66,7 @@ GitHubClient.prototype.getTrendingRepositories = co.wrap(function*(time, languag
     const $ = cheerio.load(res.body);
     const data = [];
     $('.container.explore-page .explore-content > ol > li').each(function() {
-        var owner = $('h3.repo-list-name > a', this).attr('href').split('/');
+        var owner = $('h3 > a', this).attr('href').split('/');
         data.push({ owner: owner[1], name: owner[2] });
     });
 

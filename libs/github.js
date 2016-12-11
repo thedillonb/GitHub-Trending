@@ -144,7 +144,7 @@ GitHubClient.prototype.getShowcaseData = co.wrap(function *(slug) {
     const description = $('.showcase-page-description').text().trim();
     const data = [];
     $('.repo-list > li').each(function() {
-        const href = $('h3.repo-list-name > a', this).attr('href').split('/');
+        const href = $('h3 > a', this).attr('href').split('/');
         data.push({ owner: href[1], name: href[2] });
     });
 

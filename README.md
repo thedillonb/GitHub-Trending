@@ -6,6 +6,10 @@ but I welcome anyone else who wishes to expand upon this to do so.
 
 ## Demo
 
+The following links are for demonstration purposes only. Please do **not** use these endpoints in your applications.
+This instance is specifically designed for use by the iOS application, CodeHub, and is not ment for external use outside
+of that application. The code is provided so that *YOU* may stand up your own instance.
+
 [Showcases](http://trending.codehub-app.com/v2/showcases)
 
 [Languages](http://trending.codehub-app.com/v2/languages)

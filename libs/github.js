@@ -87,7 +87,7 @@ GitHubClient.prototype.getLanguages = function() {
     }).then(x => {
       const $ = cheerio.load(x.body);
       const languages = [];
-      $('.column.one-fourth .select-menu .select-menu-list a.select-menu-item').each(function() {
+      $('.col-md-3 .select-menu .select-menu-list a.select-menu-item').each(function() {
         const href = $(this).attr('href');
         languages.push({
             name: $(this).text().trim(),
@@ -140,8 +140,7 @@ GitHubClient.prototype.getShowcaseData = co.wrap(function *(slug) {
     });
 
     const $ = cheerio.load(res.body);
-    const title = $('.showcase-page-title').text().trim();
-    const description = $('.showcase-page-description').text().trim();
+    const description = $('.border-bottom .markdown-body').text().trim();
     const data = [];
     $('.repo-list > li').each(function() {
         const href = $('h3 > a', this).attr('href').split('/');
@@ -153,7 +152,6 @@ GitHubClient.prototype.getShowcaseData = co.wrap(function *(slug) {
       repos.push(yield this.getRepository(data[i].owner, data[i].name));
     }
     return {
-      title: title,
       description: description,
       repos: repos
     };

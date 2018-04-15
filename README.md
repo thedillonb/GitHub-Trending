@@ -1,6 +1,6 @@
 # GitHub-Trending
 
-Scrapes GitHub's trending and showcase pages to produce an API that can be consumed by downstream applications. 
+Scrapes GitHub's trending and showcase pages to produce an API that can be consumed by downstream applications.
 This application was originally designed for use in the iOS GitHub application [CodeHub](https://github.com/thedillonb/CodeHub)
 but I welcome anyone else who wishes to expand upon this to do so.
 
@@ -10,15 +10,15 @@ The following links are for demonstration purposes only. Please do **not** use t
 This instance is specifically designed for use by the iOS application, CodeHub, and is not ment for external use outside
 of that application. The code is provided so that *YOU* may stand up your own instance.
 
-[Showcases](http://trending.codehub-app.com/v2/showcases)
+[Showcases](http://trending.codehub-app.com/showcases)
 
-[Languages](http://trending.codehub-app.com/v2/languages)
+[Languages](http://trending.codehub-app.com/languages)
 
-[Trending](http://trending.codehub-app.com/v2/trending)
+[Trending](http://trending.codehub-app.com/trending)
 
 ## Installation
 
-```
+```bash
 git clone git@github.com:thedillonb/GitHub-Trending.git
 
 cd GitHub-Trending
@@ -28,13 +28,11 @@ npm install
 
 You will need to generate a GitHub token if you want to scrape the pages
 
+```bash
+GITHUB_TOKEN=<GITHUB_TOKEN> npm run dev-start
+```
 
-*Run the web app:* ```npm start```
-
-*Run the updater:* ```./bin/update --trending --showcase --key <GITHUB_TOKEN>```
-
-
-## License 
+## License
 
 The MIT License (MIT)
 

@@ -1,6 +1,8 @@
-FROM google/nodejs
+FROM node:8
 
-ADD . /app
+ADD dist /app
+ADD package-lock.json /app
+ADD package.json /app
 
 WORKDIR /app
 
@@ -8,4 +10,4 @@ RUN npm install
 
 EXPOSE 3000
 
-CMD ["/nodejs/bin/npm", "start"]
+CMD ["npm", "start"]

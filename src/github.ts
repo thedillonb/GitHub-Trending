@@ -91,7 +91,9 @@ export default class GitHubClient {
     const languages: Array<{ name: string; slug: string }> = [];
 
     $('.col-md-3 .select-menu .select-menu-list a.select-menu-item').each((idx, el) => {
-      const href = $(el).attr('href');
+      const href = $(el)
+        .attr('href')
+        .split('?')[0];
       const slug = decodeURIComponent(href.substring(href.lastIndexOf('/') + 1));
       const name = $(el)
         .text()

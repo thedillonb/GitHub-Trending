@@ -95,9 +95,12 @@ export default class GitHubClient {
 
     const repos = [];
 
-    for (const r of owners) {
-      const { owner, name } = r;
-      repos.push(await this.getRepository(owner, name));
+    for (const { owner, name } of owners) {
+      try {
+        repos.push(await this.getRepository(owner, name));
+      } catch (err) {
+        winston.error(`Error retrieving trending repository ${owner}/${name}.`);
+      }
     }
 
     return repos;
@@ -204,9 +207,12 @@ export default class GitHubClient {
     });
 
     const repos: any[] = [];
-    for (const d of data) {
-      const repo = await this.getRepository(d.owner, d.name);
-      repos.push(repo);
+    for (const { owner, name } of data) {
+      try {
+        repos.push(await this.getRepository(owner, name));
+      } catch (err) {
+        winston.error(`Error retrieving trending repository ${owner}/${name}.`);
+      }
     }
 
     return repos;

@@ -1,4 +1,4 @@
-FROM node:8
+FROM node:10
 
 ADD dist /app
 ADD package-lock.json /app

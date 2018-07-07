@@ -51,7 +51,6 @@ router.get(
 router.get(
   '/showcases',
   wrap(async (req, res) => {
-    const domain = getDomain(req);
     const showcases = await db.getShowcases();
 
     res.json(

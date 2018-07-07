@@ -15,11 +15,8 @@ const gh = new GitHub(process.env.GITHUB_TOKEN as string);
 
 app.set('port', process.env.PORT || 3000);
 
-const delay = (time: number) => new Promise(res => setTimeout(res, time));
 const mkdir = util.promisify(fs.mkdir);
 const dirExists = util.promisify(fs.exists);
-const writeFile = util.promisify(fs.writeFile);
-const unlink = util.promisify(fs.unlink);
 
 const atomic = (file: string, data: any) => {
   return new Promise((res, rej) => {
@@ -100,7 +97,6 @@ async function updateTrending() {
       });
 
       await atomic(path.join(trendingPath, `${language.slug}.${time}.json`), repos);
-      await delay(2000);
     }
   }
 }

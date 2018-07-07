@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
-    "target": "es2016",
+    "target": "es2017",
     "module": "commonjs",
-    "lib": ["es2016"],
+    "lib": ["es2017"],
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
+    "noEmitOnError": true,
+    "noUnusedLocals": true
   },
   "include": [
     "**/*.ts"

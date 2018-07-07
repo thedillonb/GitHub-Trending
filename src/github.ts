@@ -1,10 +1,33 @@
 import cheerio from 'cheerio';
 import _ from 'lodash';
-import request from 'request-promise';
-import util from 'util';
+import request from 'request-promise-native';
 import winston from 'winston';
 
 import { IShowcase } from './interfaces';
+
+const wait = (duration: number) => new Promise(res => setTimeout(res, duration * 1000));
+
+async function scrape(options: request.OptionsWithUrl): Promise<request.FullResponse> {
+  while (true) {
+    const result = await request({
+      ...options,
+      resolveWithFullResponse: true,
+      simple: false
+    });
+
+    const { statusCode } = result;
+
+    if (statusCode === 429) {
+      winston.warn(`429 received (${options.url})!. Waiting 2mins.`);
+      await wait(60 * 2);
+      continue;
+    } else if (statusCode === 200) {
+      return result;
+    } else {
+      throw new Error(`Invalid status code: ${statusCode}`);
+    }
+  }
+}
 
 export default class GitHubClient {
   constructor(readonly token: string) {
@@ -13,8 +36,8 @@ export default class GitHubClient {
     }
   }
 
-  public getRepository(user: string, name: string) {
-    return request({
+  public async getRepository(user: string, name: string) {
+    const response: request.FullResponse = await request({
       auth: {
         pass: this.token,
         sendImmediately: true,
@@ -24,26 +47,26 @@ export default class GitHubClient {
       method: 'GET',
       resolveWithFullResponse: true,
       url: `https://api.github.com/repos/${user}/${name}`
-    }).then((response: request.RequestPromise) => {
-      const rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'], 10);
-      const resetSeconds = parseInt(response.headers['x-ratelimit-reset'], 10);
-      const nowSeconds = Math.round(new Date().getTime() / 1000);
-      const duration = resetSeconds - nowSeconds + 60;
-
-      // We need to drop the permission object from every repository
-      // because that state belongs to the user that is authenticated
-      // at the curren time; which is misrepresentitive of the client
-      // attempting to query this information.
-      const repoBody = _.omit(JSON.parse(response.body.toString()), 'permissions');
-
-      // Make sure we don't drain the rate limit
-      if (rateLimitRemaining < 400) {
-        winston.warn('Pausing for %s to allow rateLimit to reset', duration);
-        return new Promise(res => setTimeout(res, duration * 1000)).then(() => repoBody);
-      }
-
-      return repoBody;
     });
+
+    const rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'] as string, 10);
+    const resetSeconds = parseInt(response.headers['x-ratelimit-reset'] as string, 10);
+    const nowSeconds = Math.round(new Date().getTime() / 1000);
+    const duration = resetSeconds - nowSeconds + 60;
+
+    // We need to drop the permission object from every repository
+    // because that state belongs to the user that is authenticated
+    // at the curren time; which is misrepresentitive of the client
+    // attempting to query this information.
+    const repoBody = _.omit(JSON.parse(response.body.toString()), 'permissions');
+
+    // Make sure we don't drain the rate limit
+    if (rateLimitRemaining < 400) {
+      winston.warn('Pausing for %s to allow rateLimit to reset', duration);
+      await wait(duration);
+    }
+
+    return repoBody;
   }
 
   public async getTrendingRepositories(time: string, language?: string | null) {
@@ -52,14 +75,14 @@ export default class GitHubClient {
       queryString.l = language;
     }
 
-    const result = await request({
+    const result = await scrape({
       headers: { 'X-PJAX': 'true' },
       method: 'GET',
       qs: queryString,
       url: 'https://github.com/trending'
     });
 
-    const $ = cheerio.load(result);
+    const $ = cheerio.load(result.body);
     const owners: Array<{ owner: string; name: string }> = [];
 
     $('div.explore-content > ol > li').each((idx, el) => {
@@ -81,13 +104,13 @@ export default class GitHubClient {
   }
 
   public async getLanguages() {
-    const result = await request({
+    const result = await scrape({
       headers: { 'X-PJAX': 'true' },
       method: 'GET',
       url: 'https://github.com/trending'
     });
 
-    const $ = cheerio.load(result);
+    const $ = cheerio.load(result.body);
     const languages: Array<{ name: string; slug: string }> = [];
 
     $('.col-md-3 .select-menu .select-menu-list a.select-menu-item').each((idx, el) => {
@@ -108,8 +131,8 @@ export default class GitHubClient {
   public async getShowcases() {
     const showcases: IShowcase[] = [];
 
-    const addShowcases = (data: any) => {
-      const $ = cheerio.load(data);
+    const addShowcases = (response: request.FullResponse) => {
+      const $ = cheerio.load(response.body);
 
       $('article').each((idx, el) => {
         const anchor = $('a', el);
@@ -138,7 +161,7 @@ export default class GitHubClient {
       ).attr('value');
     };
 
-    const res1 = await request({
+    const res1 = await scrape({
       method: 'GET',
       url: 'https://github.com/collections'
     });
@@ -146,7 +169,7 @@ export default class GitHubClient {
     const after = addShowcases(res1);
 
     if (after) {
-      const res2 = await request({
+      const res2 = await scrape({
         method: 'GET',
         qs: { after },
         url: 'https://github.com/collections'
@@ -159,12 +182,12 @@ export default class GitHubClient {
   }
 
   public async getShowcaseRepositories(slug: string) {
-    const res = await request({
+    const res = await scrape({
       method: 'GET',
       url: `https://github.com/collections/${slug}`
     });
 
-    const $ = cheerio.load(res);
+    const $ = cheerio.load(res.body);
 
     const data: Array<{ owner: string; name: string }> = [];
 

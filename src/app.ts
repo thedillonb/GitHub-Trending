@@ -3,10 +3,8 @@ import cors from 'cors';
 import express, { NextFunction, Request, Response } from 'express';
 import httpErrors from 'http-errors';
 import logger from 'morgan';
-import path from 'path';
 import winston from 'winston';
 
-import * as db from './db';
 import routes from './routes';
 
 const app = express();

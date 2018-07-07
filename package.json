@@ -17,7 +17,7 @@
     "lodash": "^4.17.5",
     "morgan": "^1.9.0",
     "request": "^2.85.0",
-    "request-promise": "^4.2.2",
+    "request-promise-native": "^1.0.5",
     "winston": "^2.4.1",
     "write-file-atomic": "^2.3.0"
   },
@@ -30,7 +30,7 @@
     "@types/lodash": "^4.14.106",
     "@types/morgan": "^1.7.35",
     "@types/request": "^2.47.0",
-    "@types/request-promise": "^4.1.41",
+    "@types/request-promise-native": "^1.0.15",
     "@types/winston": "^2.3.9",
     "@types/write-file-atomic": "^2.1.1",
     "prettier": "^1.11.1",

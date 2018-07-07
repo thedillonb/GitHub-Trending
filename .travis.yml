@@ -2,11 +2,10 @@ sudo: required
 services:
 - docker
 script:
-- docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+- docker login -u $DOCKER_USER -p $DOCKER_PASS
 - docker build -t thedillonb/github-trending .
 - docker push thedillonb/github-trending
 env:
   global:
-  - secure: Bv1l1B4j0Qu82UfwRcqMoLOQ58rtVQ25FWokRngkAq+0sGCJuD07fHvY6u6PBQohBKVfEluIjKWxyWEE2jWPHr0K0LiZ7ezZqDoYg7jXvLa808xAPCIJz/qVYOuk6Vnan6/aHALteSnqm117d0ql9mecI+FDUMofHwtuvC4pM3g=
-  - secure: Yz933op6l5iUXKeeSDkYQ2YXyHIg5KL4dUvhkffGAk6H1Pn8H1+vTYp42KLsLpQgg8aCM0gJhH/X71hgTCdtm89xGlg1c3SisYWM3cFyyOWy0od8S3vVBCL5xKcXXguHg9C/kLzydwJ3PeJinKR/z3Oo+gFrhUXHjBtXmnFusxc=
-  - secure: m6RdHKKyDj15QzbipFWzcpnW90XnPHvOOFRrHSKHmvGZD802OetaDGSvJMDvb1YVpwxsN+fTF4/1GGpjA4Q6EfbEXsN+0GM6+dn3LBmnmS0xWZ8kdz1uXgPC+oGol6cREo9MyqdaXcHCTxp5gKhpbgzl9Tgk2TfquQkv22GpD1Q=
+  - secure: nx7Ol0I4nrN6AmxCRpIk8swnONfd6goj0TXb6MZwseMaPlkAv3vaYhUNjVvbCNAMhokH6KbmHZRpsOcUAbbJNlOoI7xkIo/uL6xPIZicExISoawebgU2PHxtVIh32+v/OHt5pOBt8KaetkmTz0HUYg3hJIL05o7cYE7DvetlTCg=
+  - secure: E8xUBt7tM0PktreZNCLwfwszi6O7HcO6BB/QZpHRRUIKPOB9eR/bpq2awgdEldxaryJ2Aizg3yDWTw87lNEawMde9ae6p+okoHhURbbTYNfN/Wf5KakrWZL5UtyKu/LoDxoxc9bJs6c7YGSkQYlQqS8PxGVZAd4cN75dhFDOGgo=

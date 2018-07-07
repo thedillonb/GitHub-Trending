@@ -1,12 +1,10 @@
 FROM node:10
 
-ADD dist /app
-ADD package-lock.json /app
-ADD package.json /app
+ADD . /app
 
 WORKDIR /app
 
-RUN npm install
+RUN npm install && npm run build
 
 EXPOSE 3000
 

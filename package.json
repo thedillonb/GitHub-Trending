@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/main",
+    "start": "node ./dist/bin/main",
     "dev-start": "ts-node ./bin/main",
     "build": "tsc",
-    "build:docker": "tsc && docker build -t thedillonb/github-trending:latest ."
+    "build:docker": "docker build -t thedillonb/github-trending:latest ."
   },
   "dependencies": {
     "body-parser": "^1.18.2",

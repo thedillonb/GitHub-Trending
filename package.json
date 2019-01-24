@@ -18,7 +18,7 @@
     "morgan": "^1.9.0",
     "request": "^2.85.0",
     "request-promise": "^4.2.2",
-    "winston": "^2.4.1",
+    "winston": "^3.1.0",
     "write-file-atomic": "^2.3.0"
   },
   "devDependencies": {
@@ -34,9 +34,9 @@
     "@types/winston": "^2.3.9",
     "@types/write-file-atomic": "^2.1.1",
     "prettier": "^1.11.1",
-    "ts-node": "^5.0.1",
+    "ts-node": "^8.0.1",
     "tslint": "^5.9.1",
     "tslint-config-prettier": "^1.10.0",
-    "typescript": "^2.8.1"
+    "typescript": "^3.2.4"
   }
 }

@@ -1,5 +1,7 @@
 # GitHub-Trending
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/Dizzydaizys/GitHub-Trending.svg)](https://greenkeeper.io/)
+
 Scrapes GitHub's trending and showcase pages to produce an API that can be consumed by downstream applications.
 This application was originally designed for use in the iOS GitHub application [CodeHub](https://github.com/thedillonb/CodeHub)
 but I welcome anyone else who wishes to expand upon this to do so.

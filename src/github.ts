@@ -85,8 +85,8 @@ export default class GitHubClient {
     const $ = cheerio.load(result.body);
     const owners: Array<{ owner: string; name: string }> = [];
 
-    $('div.explore-content > ol > li').each((idx, el) => {
-      const owner = $('h3 > a', el)
+    $('article.Box-row').each((idx, el) => {
+      const owner = $('h1 > a', el)
         .attr('href')
         .split('/');
 
@@ -116,7 +116,7 @@ export default class GitHubClient {
     const $ = cheerio.load(result.body);
     const languages: Array<{ name: string; slug: string }> = [];
 
-    $('.col-md-3 .select-menu .select-menu-list a.select-menu-item').each((idx, el) => {
+    $('.mb-3 .select-menu .select-menu-list a.select-menu-item').each((idx, el) => {
       const href = $(el)
         .attr('href')
         .split('?')[0];
@@ -159,9 +159,7 @@ export default class GitHubClient {
         });
       });
 
-      return $(
-        'body > div.application-main > div.container-md.p-responsive.py-6 > form > input[type="hidden"]:nth-child(2)'
-      ).attr('value');
+      return $('.ajax-pagination-form > input:nth-child(2)').attr('value');
     };
 
     const res1 = await scrape({
